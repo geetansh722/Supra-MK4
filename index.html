@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SUPRA MK4 | LEGEND</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
+  <style>
+    :root {
+      --primary: #ff3e00;
+      --secondary: #2b8a96;
+      --dark: #121212;
+      --light: #f8f8f8;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Arial', sans-serif;
+    }
+    
+    body {
+      background-color: var(--dark);
+      color: var(--light);
+      overflow-x: hidden;
+      cursor: none;
+    }
+    
+    #cursor {
+      position: fixed;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background-color: var(--primary);
+      mix-blend-mode: difference;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      z-index: 9999;
+      transition: transform 0.1s;
+    }
+    
+    #cursor-follower {
+      position: fixed;
+      width: 40px;
+      height: 40px;
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      border-radius: 50%;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      z-index: 9998;
+      transition: transform 0.15s ease-out;
+    }
+    
+    #canvas-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+    }
+    
+    #loader-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: var(--dark);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9997;
+      transition: opacity 1s ease-out;
+    }
+    
+    .loader-text {
+      font-size: 3rem;
+      font-weight: 900;
+      background: linear-gradient(to right, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 2rem;
+    }
+    
+    .progress-bar {
+      width: 300px;
+      height: 4px;
+      background-color: rgba(255, 255, 255, 0.2);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    
+    .progress {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(to right, var(--primary), var(--secondary));
+      transition: width 0.2s ease;
+    }
+    
+    #content {
+      position: relative;
+      width: 100%;
+      opacity: 0;
+      transition: opacity 1s ease-in;
+    }
+    
+    header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      padding: 2rem;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .logo {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--light);
+      text-decoration: none;
+    }
+    
+    nav ul {
+      display: flex;
+      list-style: none;
+    }
+    
+    nav ul li {
+      margin-left: 2rem;
+    }
+    
+    nav ul li a {
+      color: var(--light);
+      text-decoration: none;
+      text-transform: uppercase;
+      font-size: 0.9rem;
+      letter-spacing: 1px;
+      position: relative;
+      padding: 5px 0;
+    }
+    
+    nav ul li a::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background: linear-gradient(to right, var(--primary), var(--secondary));
+      transition: width 0.3s ease;
+    }
+    
+    nav ul li a:hover::after,
+    nav ul li a.active::after {
+      width: 100%;
+    }
+    
+    .section {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      opacity: 0;
+      transform: translateY(50px);
+      transition: opacity 1s ease, transform 1s ease;
+    }
+    
+    .section.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    
+    .section-content {
+      max-width: 1200px;
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: center;
+    }
+    
+    .section-title {
+      font-size: 4rem;
+      font-weight: 900;
+      margin-bottom: 1rem;
+      background: linear-gradient(to right, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .section-subtitle {
+      font-size: 1.5rem;
+      margin-bottom: 2rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
+    
+    .section-text {
+      margin-bottom: 2rem;
+      line-height: 1.6;
+    }
+    
+    .btn {
+      display: inline-block;
+      padding: 1rem 2rem;
+      background: linear-gradient(to right, var(--primary), var(--secondary));
+      color: var(--light);
+      text-decoration: none;
+      border-radius: 30px;
+      font-weight: 600;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .btn:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+    }
+    
+    .model-viewer {
+      position: relative;
+      width: 100%;
+      height: 400px;
+      border-radius: 10px;
+      overflow: hidden;
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+    
+    .specs-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+    
+    .spec-item {
+      background-color: rgba(148, 36, 36, 0.05);
+      padding: 1rem;
+      border-radius: 10px;
+      transition: transform 0.3s ease, background-color 0.3s ease;
+    }
+    
+    .spec-item:hover {
+      transform: translateY(-5px);
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .spec-label {
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.5);
+      margin-bottom: 0.5rem;
+    }
+    
+    .spec-value {
+      font-size: 1.2rem;
+      font-weight: 600;
+
+    }
+    
+    .engine-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+    
+    .stat-item {
+      text-align: center;
+      padding: 1rem;
+      background-color: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      transition: transform 0.3s ease;
+    }
+    
+    .stat-item:hover {
+      transform: translateY(-5px);
+    }
+    
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(to right, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.5rem;
+    }
+    
+    .stat-label {
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
+    
+    .timeline {
+      position: relative;
+      margin-top: 3rem;
+    }
+    
+    .timeline::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      width: 2px;
+      height: 100%;
+      background: linear-gradient(to bottom, var(--primary), var(--secondary));
+      transform: translateX(-50%);
+    }
+    
+    .timeline-item {
+      position: relative;
+      padding: 2rem;
+      width: calc(50% - 30px);
+      margin-bottom: 2rem;
+      background-color: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+    }
+    
+    .timeline-item:nth-child(odd) {
+      margin-left: auto;
+    }
+    
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      width: 30px;
+      height: 2px;
+      background: linear-gradient(to right, var(--primary), var(--secondary));
+    }
+    
+    .timeline-item:nth-child(odd)::before {
+      left: -30px;
+    }
+    
+    .timeline-item:nth-child(even)::before {
+      right: -30px;
+    }
+    
+    .timeline-year {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: linear-gradient(to right, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+    
+    .timeline-item:nth-child(odd) .timeline-year {
+      left: -80px;
+    }
+    
+    .timeline-item:nth-child(even) .timeline-year {
+      right: -80px;
+    }
+    
+    @media (max-width: 768px) {
+      .section-content {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+      }
+      
+      .timeline-item {
+        width: 100%;
+        margin-left: 0 !important;
+      }
+      
+      .timeline::before {
+        left: 30px;
+      }
+      
+      .timeline-item::before {
+        left: -30px !important;
+        right: auto !important;
+      }
+      
+      .timeline-year {
+        left: -80px !important;
+        right: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="cursor"></div>
+  <div id="cursor-follower"></div>
+  
+  <div id="loader-container">
+    <div class="loader-text">SUPRA MK4</div>
+    <div class="progress-bar">
+      <div class="progress" id="progress"></div>
+    </div>
+  </div>
+  
+  <div id="canvas-container"></div>
+  
+  <div id="content">
+    <header>
+      <a href="#home" class="logo">SUPRA MK4</a>
+      <nav>
+        <ul>
+          <li><a href="#home" class="nav-link active" data-section="home">Home</a></li>
+          <li><a href="#engine" class="nav-link" data-section="engine">Engine</a></li>
+          <li><a href="#release" class="nav-link" data-section="release">Release</a></li>
+          <li><a href="#power" class="nav-link" data-section="power">Power</a></li>
+          <li><a href="#model" class="nav-link" data-section="model">Model</a></li>
+        </ul>
+      </nav>
+    </header>
+    
+    <section id="home" class="section active">
+      <div class="section-content">
+        <div>
+          <h1 class="section-title">TOYOTA SUPRA MK4</h1>
+          <h2 class="section-subtitle">The Legend Never Dies</h2>
+          <p class="section-text">
+            The fourth-generation Toyota Supra, known as the A80 or MK4, is an automotive icon that transcended
+            its status as a mere sports car to become a cultural phenomenon. With its timeless design,
+            legendary 2JZ engine, and incredible performance capabilities, the MK4 Supra continues to
+            captivate car enthusiasts around the world.
+          </p>
+          <a href="#engine" class="btn">Explore the Legend</a>
+        </div>
+        <div class="model-viewer" id="home-model"></div>
+      </div>
+    </section>
+    
+    <section id="engine" class="section">
+      <div class="section-content">
+        <div class="model-viewer" id="engine-model"></div>
+        <div>
+          <h2 class="section-title">2JZ-GTE</h2>
+          <h3 class="section-subtitle">Engineering Perfection</h3>
+          <p class="section-text">
+            The heart of the Supra MK4 is its legendary 2JZ-GTE engine - an inline-six twin-turbocharged 
+            masterpiece that has become synonymous with bulletproof reliability and immense tuning potential.
+            Factory-built with forged internals and an overengineered block, this powerplant can handle
+            enormous power levels with minimal modifications.
+          </p>
+          <div class="engine-stats">
+            <div class="stat-item">
+              <div class="stat-value">3.0L</div>
+              <div class="stat-label">Displacement</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value">24V</div>
+              <div class="stat-label">DOHC</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value">2</div>
+              <div class="stat-label">Turbos</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <section id="release" class="section">
+      <div class="section-content">
+        <div>
+          <h2 class="section-title">1993-2002</h2>
+          <h3 class="section-subtitle">A Legendary Era</h3>
+          <p class="section-text">
+            The fourth-generation Toyota Supra was unveiled at the 1993 Chicago Auto Show and went into 
+            production the same year. Its production span of almost a decade saw the creation of a
+            timeless machine that continues to appreciate in value and cultural significance.
+          </p>
+          <div class="timeline">
+            <div class="timeline-item">
+              <div class="timeline-year">1993</div>
+              <h4>Initial Release</h4>
+              <p>The A80 Supra debuts, featuring the now-iconic 2JZ engine and stunning aerodynamic design.</p>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-year">1996</div>
+              <h4>U.S. Specification Updates</h4>
+              <p>Various updates to comply with emissions and safety standards while maintaining performance.</p>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-year">1998</div>
+              <h4>VVT-i Introduction</h4>
+              <p>Engine updates including Variable Valve Timing with intelligence for Japanese models.</p>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-year">2002</div>
+              <h4>End of Production</h4>
+              <p>The final MK4 Supras roll off the production line, marking the end of an era.</p>
+            </div>
+          </div>
+        </div>
+        <div class="model-viewer" id="release-model"></div>
+      </div>
+    </section>
+    
+    <section id="power" class="section">
+      <div class="section-content">
+        <div class="model-viewer" id="power-model"></div>
+        <div>
+          <h2 class="section-title">PERFORMANCE</h2>
+          <h3 class="section-subtitle">Raw Power Unleashed</h3>
+          <p class="section-text">
+            In its stock form, the twin-turbocharged Supra MK4 produced 320 horsepower (JDM spec) or 
+            276 horsepower in markets with stricter emissions regulations. However, it's the car's
+            incredible tuning potential that has cemented its legendary status, with modified examples
+            easily reaching 1000+ horsepower while maintaining reliability.
+          </p>
+          <div class="specs-list">
+            <div class="spec-item">
+              <div class="spec-label">Horsepower</div>
+              <div class="spec-value">320 HP</div>
+            </div>
+            <div class="spec-item">
+              <div class="spec-label">Torque</div>
+              <div class="spec-value">315 lb-ft</div>
+            </div>
+            <div class="spec-item">
+              <div class="spec-label">0-60 MPH</div>
+              <div class="spec-value">4.6 sec</div>
+            </div>
+            <div class="spec-item">
+              <div class="spec-label">Top Speed</div>
+              <div class="spec-value">155 mph</div>
+            </div>
+            <div class="spec-item">
+              <div class="spec-label">Quarter Mile</div>
+              <div class="spec-value">13.1 sec</div>
+            </div>
+            <div class="spec-item">
+              <div class="spec-label">Weight</div>
+              <div class="spec-value">3,417 lbs</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <section id="model" class="section">
+      <div class="section-content">
+        <div>
+          <h2 class="section-title">THE ICON</h2>
+          <h3 class="section-subtitle">Timeless Design</h3>
+          <p class="section-text">
+            The MK4 Supra's aerodynamic silhouette and distinctive rear wing have made it one of the most 
+            recognizable sports cars ever created. Its design philosophy focused on performance while
+            creating an aesthetic that has stood the test of time, remaining as striking today as it
+            was when it first rolled off the production line.
+          </p>
+          <div class="specs-list">
+            <div class="spec-item">
+              <div class="spec-label">Body Type</div>
+              <div class="spec-value">2-Door Coupé</div>
+            </div>
+            <div class="spec-item">
+              <div class="spec-label">Platform</div>
+              <div class="spec-value">A80</div>
+            </div>
+            <div class="spec-item">
+              <div class="spec-label">Length</div>
+              <div class="spec-value">4,515 mm</div>
+            </div>
+            <div class="spec-item">
+              <div class="spec-label">Width</div>
+              <div class="spec-value">1,810 mm</div>
+            </div>
+            <div class="spec-item">
+              <div class="spec-label">Height</div>
+              <div class="spec-value">1,275 mm</div>
+            </div>
+            <div class="spec-item">
+              <div class="spec-label">Wheelbase</div>
+              <div class="spec-value">2,550 mm</div>
+            </div>
+          </div>
+        </div>
+        <div class="model-viewer" id="model-viewer"></div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // Custom cursor
+    const cursor = document.getElementById('cursor');
+    const cursorFollower = document.getElementById('cursor-follower');
+    
+    document.addEventListener('mousemove', (e) => {
+      gsap.to(cursor, {
+        x: e.clientX,
+        y: e.clientY,
+        duration: 0.1
+      });
+      
+      gsap.to(cursorFollower, {
+        x: e.clientX,
+        y: e.clientY,
+        duration: 0.3
+      });
+    });
+    
+    document.addEventListener('mousedown', () => {
+      gsap.to(cursor, {
+        scale: 0.8,
+        duration: 0.2
+      });
+    });
+    
+    document.addEventListener('mouseup', () => {
+      gsap.to(cursor, {
+        scale: 1,
+        duration: 0.2
+      });
+    });
+    
+    // Elements that enlarge the cursor
+    const hoverableElements = document.querySelectorAll('a, .btn, .spec-item, .stat-item, .timeline-item');
+    
+    hoverableElements.forEach(element => {
+      element.addEventListener('mouseenter', () => {
+        gsap.to(cursor, {
+          scale: 2,
+          backgroundColor: 'var(--secondary)',
+          duration: 0.3
+        });
+        gsap.to(cursorFollower, {
+          scale: 1.5,
+          borderColor: 'var(--secondary)',
+          duration: 0.3
+        });
+      });
+      
+      element.addEventListener('mouseleave', () => {
+        gsap.to(cursor, {
+          scale: 1,
+          backgroundColor: 'var(--primary)',
+          duration: 0.3
+        });
+        gsap.to(cursorFollower, {
+          scale: 1,
+          borderColor: 'rgba(255, 255, 255, 0.5)',
+          duration: 0.3
+        });
+      });
+    });
+    
+    // Loader
+    const loaderContainer = document.getElementById('loader-container');
+    const progressBar = document.getElementById('progress');
+    const content = document.getElementById('content');
+    
+    let progress = 0;
+    const loadInterval = setInterval(() => {
+      progress += Math.random() * 10;
+      if (progress >= 100) {
+        progress = 100;
+        clearInterval(loadInterval);
+        
+        setTimeout(() => {
+          gsap.to(loaderContainer, {
+            opacity: 0,
+            duration: 1,
+            onComplete: () => {
+              loaderContainer.style.display = 'none';
+              gsap.to(content, {
+                opacity: 1,
+                duration: 1
+              });
+              initThreeJS();
+            }
+          });
+        }, 500);
+      }
+      progressBar.style.width = `${progress}%`;
+    }, 150);
+    
+    // Navigation
+    const navLinks = document.querySelectorAll('.nav-link');
+    const sections = document.querySelectorAll('.section');
+    
+    navLinks.forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        
+        navLinks.forEach(navLink => navLink.classList.remove('active'));
+        link.classList.add('active');
+        
+        const targetSection = link.getAttribute('data-section');
+        
+        sections.forEach(section => {
+          section.classList.remove('active');
+          if (section.id === targetSection) {
+            section.classList.add('active');
+            gsap.to(window, {
+              scrollTo: `#${targetSection}`,
+              duration: 1
+            });
+          }
+        });
+      });
+    });
+    
+    // Three.js Setup
+    function initThreeJS() {
+      // Scene setup
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(window.devicePixelRatio);
+      document.getElementById('canvas-container').appendChild(renderer.domElement);
+      
+      // Lights
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+      scene.add(ambientLight);
+      
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+      directionalLight.position.set(10, 10, 10);
+      scene.add(directionalLight);
+      
+      // Create particles
+      const particlesGeometry = new THREE.BufferGeometry();
+      const particlesCount = 2000;
+      
+      const posArray = new Float32Array(particlesCount * 3);
+      for (let i = 0; i < particlesCount * 3; i++) {
+        posArray[i] = (Math.random() - 0.5) * 100;
+      }
+      
+      particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+      
+      const particlesMaterial = new THREE.PointsMaterial({
+        size: 0.1,
+        color: 0x00e1ff
+      });
+      
+      const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
+      scene.add(particlesMesh);
+      
+      // Create geometric shapes for interactive elements
+      const shapes = [];
+      for (let i = 0; i < 20; i++) {
+        let geometry;
+        const random = Math.random();
+        
+        if (random < 0.33) {
+          geometry = new THREE.TorusGeometry(1, 0.2, 16, 50);
+        } else if (random < 0.66) {
+          geometry = new THREE.OctahedronGeometry(1, 0);
+        } else {
+          geometry = new THREE.TetrahedronGeometry(1, 0);
+        }
+        
+        const material = new THREE.MeshStandardMaterial({
+          color: random < 0.5 ? 0xff3e00 : 0x00e1ff,
+          wireframe: Math.random() > 0.5
+        });
+        
+        const mesh = new THREE.Mesh(geometry, material);
+        
+        mesh.position.x = (Math.random() - 0.5) * 60;
+        mesh.position.y = (Math.random() - 0.5) * 60;
+        mesh.position.z = (Math.random() - 0.5) * 60;
+        
+        mesh.rotation.x = Math.random() * Math.PI;
+        mesh.rotation.y = Math.random() * Math.PI;
+        
+        mesh.scale.set(
+          Math.random() * 1 + 0.5,
+          Math.random() * 1 + 0.5,
+          Math.random() * 1 + 0.5
+        );
+        
+        shapes.push({
+          mesh,
+          rotationSpeed: {
+            x: (Math.random() - 0.5) * 0.01,
+            y: (Math.random() - 0.5) * 0.01,
+            z: (Math.random() - 0.5) * 0.01
+          }
+        });
+        
+        scene.add(mesh);
+      }
+      
+      // Car models for each section (simplified placeholders)
+      const homeModelViewer = document.getElementById('home-model');
+      const engineModelViewer = document.getElementById('engine-model');
+      const releaseModelViewer = document.getElementById('release-model');
+      const powerModelViewer = document.getElementById('power-model');
+      const modelViewer = document.getElementById('model-viewer');
+      
+      const createSimplifiedCarModel = (container, color = 0xff3e00) => {
+        const modelScene = new THREE.Scene();
+        const modelCamera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 1000);
+        
+        const modelRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        modelRenderer.setSize(container.clientWidth, container.clientHeight);
+        container.appendChild(modelRenderer.domElement);
+        
+        // Simple car body
+        const bodyGeometry = new THREE.BoxGeometry(4, 1, 2);
+        const bodyMaterial = new THREE.MeshStandardMaterial({ color });
+        const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+        modelScene.add(body);
+        
+        // Hood and trunk
+        const hoodGeometry = new THREE.BoxGeometry(1.5, 0.5, 2);
+        const hood = new THREE.Mesh(hoodGeometry, bodyMaterial);
+        hood.position.x = 2;
+        hood.position.y = 0.25;
+        modelScene.add(hood);
+        
+        const trunkGeometry = new THREE.BoxGeometry(1, 0.8, 2);
+        const trunk = new THREE.Mesh(trunkGeometry, bodyMaterial);
+        trunk.position.x = -1.5;
+        trunk.position.y = 0.4;
+        modelScene.add(trunk);
+        
+        // Cabin
+        const cabinGeometry = new THREE.BoxGeometry(2, 1, 1.8);
+        const cabinMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
+        const cabin = new THREE.Mesh(cabinGeometry, cabinMaterial);
+        cabin.position.y = 1;
+        modelScene.add(cabin);
+        
+        // Wheels
+        const wheelGeometry = new THREE.CylinderGeometry(0.5, 0.5, 0.4, 32);
+        const wheelMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
+        
+        const wheelPositions = [
+          { x: 1.5, y: -0.25, z: 1.1 },
+          { x: 1.5, y: -0.25, z: -1.1 },
+          { x: -1.5, y: -0.25, z: 1.1 },
+          { x: -1.5, y: -0.25, z: -1.1 }
+        ];
+        
+        wheelPositions.forEach(pos => {
+          const wheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
+          wheel.position.set(pos.x, pos.y, pos.z);
+          wheel.rotation.z = Math.PI / 2;
+          modelScene.add(wheel);
+        });
+        
+        // Spoiler
+        const spoilerStandGeometry = new THREE.BoxGeometry(0.2, 0.7, 1.5);
+        const spoilerMaterial = new THREE.MeshStandardMaterial({ color });
+        
+        const spoilerStand1 = new THREE.Mesh(spoilerStandGeometry, spoilerMaterial);
+        spoilerStand1.position.set(-1.9, 0.9, 0.6);
+        modelScene.add(spoilerStand1);
+        
+        const spoilerStand2 = new THREE.Mesh(spoilerStandGeometry, spoilerMaterial);
+        spoilerStand2.position.set(-1.9, 0.9, -0.6);
+        modelScene.add(spoilerStand2);
+        
+        const spoilerTopGeometry = new THREE.BoxGeometry(0.7, 0.1, 2);
+        const spoilerTop = new THREE.Mesh(spoilerTopGeometry, spoilerMaterial);
+        spoilerTop.position.set(-1.9, 1.3, 0);
+        modelScene.add(spoilerTop);
+        
+        // Lights
+        const frontLightGeometry = new THREE.BoxGeometry(0.1, 0.3, 0.8);
+        const lightMaterial = new THREE.MeshStandardMaterial({ color: 0xffffdd, emissive: 0xffffdd, emissiveIntensity: 0.5 });
+        
+        const frontLightLeft = new THREE.Mesh(frontLightGeometry, lightMaterial);
+        frontLightLeft.position.set(2.75, 0.3, 0.6);
+        modelScene.add(frontLightLeft);
+        
+        const frontLightRight = new THREE.Mesh(frontLightGeometry, lightMaterial);
+        frontLightRight.position.set(2.75, 0.3, -0.6);
+        modelScene.add(frontLightRight);
+        
+        // Add lights to the scene
+        const modelAmbientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        modelScene.add(modelAmbientLight);
+        
+        const modelDirectionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        modelDirectionalLight.position.set(5, 5, 5);
+        modelScene.add(modelDirectionalLight);
+        
+        // Position camera
+        modelCamera.position.set(8, 4, 8);
+        modelCamera.lookAt(0, 0, 0);
+        
+        // Animation loop
+        const animate = () => {
+          requestAnimationFrame(animate);
+          
+          // Rotate the car
+          modelScene.rotation.y += 0.01;
+          
+          modelRenderer.render(modelScene, modelCamera);
+        };
+        
+        animate();
+        
+        return {
+          scene: modelScene,
+          camera: modelCamera,
+          renderer: modelRenderer
+        };
+      };
+      
+      // Create different colored models for each section
+      const homeModel = createSimplifiedCarModel(homeModelViewer, 0xff3e00);
+      const engineModel = createSimplifiedCarModel(engineModelViewer, 0x00e1ff);
+      const releaseModel = createSimplifiedCarModel(releaseModelViewer, 0xffaa00);
+      const powerModel = createSimplifiedCarModel(powerModelViewer, 0xff00aa);
+      const mainModel = createSimplifiedCarModel(modelViewer, 0x00ffaa);
+      
+      // Customize engine model with additional engine parts
+      const addEngineDetails = () => {
+        const engineBlock = new THREE.BoxGeometry(1.5, 1.2, 1.5);
+        const engineMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
+        const engine = new THREE.Mesh(engineBlock, engineMaterial);
+        engine.position.set(0, 0.6, 0);
+        engineModel.scene.add(engine);
+        
+        // Turbos
+        const turboGeometry = new THREE.SphereGeometry(0.3, 16, 16);
+        const turboMaterial = new THREE.MeshStandardMaterial({ color: 0x666666 });
+        
+        const turbo1 = new THREE.Mesh(turboGeometry, turboMaterial);
+        turbo1.position.set(0.8, 0.7, 0.5);
+        engineModel.scene.add(turbo1);
+        
+        const turbo2 = new THREE.Mesh(turboGeometry, turboMaterial);
+        turbo2.position.set(0.8, 0.7, -0.5);
+        engineModel.scene.add(turbo2);
+        
+        // Exhaust manifold
+        const exhaustGeometry = new THREE.CylinderGeometry(0.1, 0.1, 1, 16);
+        const exhaustMaterial = new THREE.MeshStandardMaterial({ color: 0x999999 });
+        
+        for (let i = 0; i < 6; i++) {
+          const exhaust = new THREE.Mesh(exhaustGeometry, exhaustMaterial);
+          exhaust.position.set(-0.5 + i * 0.2, 0.9, 0);
+          exhaust.rotation.z = Math.PI / 2;
+          engineModel.scene.add(exhaust);
+        }
+      };
+      
+      addEngineDetails();
+      
+      // Camera position
+      camera.position.z = 30;
+      
+      // Mouse movement for parallax effect
+      let mouseX = 0;
+      let mouseY = 0;
+      let targetX = 0;
+      let targetY = 0;
+      
+      document.addEventListener('mousemove', (event) => {
+        mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+        mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+      });
+      
+      // Handle window resize
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        
+        // Resize model viewers
+        const resizeModelViewer = (model, container) => {
+          model.camera.aspect = container.clientWidth / container.clientHeight;
+          model.camera.updateProjectionMatrix();
+          model.renderer.setSize(container.clientWidth, container.clientHeight);
+        };
+        
+        resizeModelViewer(homeModel, homeModelViewer);
+        resizeModelViewer(engineModel, engineModelViewer);
+        resizeModelViewer(releaseModel, releaseModelViewer);
+        resizeModelViewer(powerModel, powerModelViewer);
+        resizeModelViewer(mainModel, modelViewer);
+      });
+      
+      // Animation loop
+      const animate = () => {
+        requestAnimationFrame(animate);
+        
+        // Smooth camera movement based on mouse position
+        targetX = mouseX * 0.2;
+        targetY = mouseY * 0.2;
+        camera.position.x += (targetX - camera.position.x) * 0.05;
+        camera.position.y += (targetY - camera.position.y) * 0.05;
+        camera.lookAt(scene.position);
+        
+        // Rotate particle system
+        particlesMesh.rotation.y += 0.001;
+        
+        // Animate shapes
+        shapes.forEach(shape => {
+          shape.mesh.rotation.x += shape.rotationSpeed.x;
+          shape.mesh.rotation.y += shape.rotationSpeed.y;
+          shape.mesh.rotation.z += shape.rotationSpeed.z;
+        });
+        
+        renderer.render(scene, camera);
+      };
+      
+      animate();
+      
+      // Intersection Observer for section animations
+      const sectionObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('active');
+          }
+        });
+      }, { threshold: 0.3 });
+      
+      sections.forEach(section => {
+        sectionObserver.observe(section);
+      });
+    }
+    
+    // Initialize the site when DOM is loaded
+    document.addEventListener('DOMContentLoaded', () => {
+      // Nothing to do here as loader handles initialization
+    });
+  </script>
+</body>
+</html>
